@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>気分・体調記録アプリ</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/script.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <h1>気分・体調記録アプリ</h1>
+        
+        <div class="input-section">
+            <h2>新しい記録を追加</h2>
+            <form id="record-form">
+                <div class="form-group">
+                    <label for="record-date">日付:</label>
+                    <input type="date" id="record-date" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="record-content">内容:</label>
+                    <textarea id="record-content" rows="3" placeholder="今日の気分や体調について記録してください" required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="record-mood">気分評価:</label>
+                    <select id="record-mood" required>
+                        <option value="">選択してください</option>
+                        <option value="1">1 - とても悪い</option>
+                        <option value="2">2 - 悪い</option>
+                        <option value="3">3 - 普通</option>
+                        <option value="4">4 - 良い</option>
+                        <option value="5">5 - とても良い</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="record-completed">完了:</label>
+                    <input type="checkbox" id="record-completed">
+                </div>
+
+                <button type="submit" id="add-button">追加</button>
+            </form>
+        </div>
+        
+        <!-- 統計・分析ダッシュボード -->
+        <div class="stats-section">
+            <h2>統計・分析</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">平均気分</div>
+                    <div class="stat-value" id="average-mood">-</div>
+                    <div class="stat-subtitle">全記録の平均値</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">総記録数</div>
+                    <div class="stat-value" id="total-records">0</div>
+                    <div class="stat-subtitle">件</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">最も良い気分</div>
+                    <div class="stat-value" id="mode-mood">-</div>
+                    <div class="stat-subtitle">最もよく記録された評価</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">気分のばらつき</div>
+                    <div class="stat-value" id="stddev-mood">-</div>
+                    <div class="stat-subtitle">標準偏差（高いほど変動大）</div>
+                </div>
+            </div>
+            <div class="distribution-chart">
+                <h3>気分分布</h3>
+                <div id="mood-distribution"></div>
+            </div>
+        </div>
+
+        <!-- 検索・フィルタリング・ソート -->
+        <div class="filter-section">
+            <h2>検索・フィルタリング</h2>
+            <div class="filter-controls">
+                <div class="filter-group">
+                    <label for="search-text">テキスト検索:</label>
+                    <input type="text" id="search-text" placeholder="内容で検索...">
+                </div>
+                <div class="filter-group">
+                    <label for="filter-mood">気分評価でフィルタ:</label>
+                    <select id="filter-mood">
+                        <option value="">すべて</option>
+                        <option value="1">1 - とても悪い</option>
+                        <option value="2">2 - 悪い</option>
+                        <option value="3">3 - 普通</option>
+                        <option value="4">4 - 良い</option>
+                        <option value="5">5 - とても良い</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="date-from">日付範囲:</label>
+                    <div class="date-range">
+                        <input type="date" id="date-from" placeholder="開始日">
+                        <span>〜</span>
+                        <input type="date" id="date-to" placeholder="終了日">
+                    </div>
+                </div>
+                <div class="filter-group">
+                    <label for="sort-by">並び替え:</label>
+                    <select id="sort-by">
+                        <option value="date-desc">日付（新しい順）</option>
+                        <option value="date-asc">日付（古い順）</option>
+                        <option value="mood-desc">気分評価（高い順）</option>
+                        <option value="mood-asc">気分評価（低い順）</option>
+                    </select>
+                </div>
+                <button type="button" id="clear-filters" class="clear-button">フィルタをクリア</button>
+            </div>
+        </div>
+
+        <div class="records-section">
+            <div class="records-header">
+                <h2>記録一覧</h2>
+                <div id="records-count" class="records-count">記録件数: 0件（表示: 0件）</div>
+            </div>
+            <div class="records-tools" style="margin-bottom:12px; display:flex; gap:8px; align-items:center;">
+                <button id="export-button" class="clear-button">データをエクスポート（JSON）</button>
+                <button id="import-button" class="clear-button">データをインポート（JSON）</button>
+                <input type="file" id="import-file" accept="application/json" style="display:none;">
+                <button id="undo-button" class="clear-button" disabled>取り消す（Undo）</button>
+                <div id="import-status" style="color:#555; font-size:0.9em"></div>
+            </div>
+            <div id="records-list">
+                <!-- 記録がここに表示されます -->
+            </div>
+        </div>
+        
+        <!-- 編集モーダル -->
+        <div id="edit-modal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <h3>記録を編集</h3>
+                <form id="edit-form">
+                    <div class="form-group">
+                        <label for="edit-date">日付:</label>
+                        <input type="date" id="edit-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-content">内容:</label>
+                        <textarea id="edit-content" rows="4" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-mood">気分評価:</label>
+                        <select id="edit-mood" required>
+                            <option value="">選択してください</option>
+                            <option value="1">1 - とても悪い</option>
+                            <option value="2">2 - 悪い</option>
+                            <option value="3">3 - 普通</option>
+                            <option value="4">4 - 良い</option>
+                            <option value="5">5 - とても良い</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-completed">完了:</label>
+                        <input type="checkbox" id="edit-completed">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" id="edit-save">保存</button>
+                        <button type="button" id="edit-cancel">キャンセル</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
